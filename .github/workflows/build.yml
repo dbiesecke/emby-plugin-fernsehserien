@@ -1,0 +1,76 @@
+name: Build and release
+on:
+  pull_request:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
+        with:
+          global-json-file: global.json
+      - run: dotnet restore tests/Checks.csproj --locked-mode
+      - run: dotnet build tests/Checks.csproj -c Release --no-restore
+      - run: dotnet run --project tests/Checks.csproj -c Release --no-build
+      - run: python3 scripts/package.py
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: fernsehserien-plugin
+          path: artifacts/
+          if-no-files-found: error
+  runtime:
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - version: '4.9.1.90'
+            image: 'emby/embyserver:4.9.1.90@sha256:50284133433841756686a8da2bb3122a7e2944546d74297f12dc700a731e5e26'
+          - version: '4.10.0.20'
+            image: 'emby/embyserver:4.10.0.20@sha256:7792883f810032c48f686aacb7cc50d2c5d7c124907cfc864f7200615f510042'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
+        with:
+          global-json-file: global.json
+      - run: dotnet restore integration/RuntimeChecks.csproj --locked-mode
+      - run: dotnet build integration/RuntimeChecks.csproj -c Release --no-restore
+      - name: Check isolated Emby runtime
+        env:
+          TEST_IMAGE: ${{ matrix.image }}
+        run: bash scripts/runtime-check.sh "$TEST_IMAGE"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: runtime-${{ matrix.version }}
+          path: artifacts/runtime-result.txt
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [build, runtime]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: fernsehserien-plugin
+          path: artifacts
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          args=(--verify-tag --generate-notes)
+          if [[ "$RELEASE_TAG" == *-* ]]; then args+=(--prerelease); fi
+          gh release create "$RELEASE_TAG" artifacts/* "${args[@]}"

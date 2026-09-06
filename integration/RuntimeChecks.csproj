@@ -1,0 +1,4 @@
+<Project Sdk="Microsoft.NET.Sdk">
+<PropertyGroup><TargetFramework>netstandard2.0</TargetFramework><LangVersion>latest</LangVersion><AssemblyName>Fernsehserien.RuntimeChecks</AssemblyName><RestorePackagesWithLockFile>true</RestorePackagesWithLockFile></PropertyGroup>
+<ItemGroup><ProjectReference Include="../src/Fernsehserien.csproj" /><PackageReference Include="MediaBrowser.Server.Core" Version="4.9.1.80" PrivateAssets="all" /></ItemGroup>
+</Project>

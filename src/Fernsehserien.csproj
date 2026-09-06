@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>Emby.Plugin.Fernsehserien</AssemblyName>
+    <RootNamespace>Emby.Plugin.Fernsehserien</RootNamespace>
+    <Version>0.1.0</Version>
+    <AssemblyVersion>0.1.0.0</AssemblyVersion>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <DefineConstants>$(DefineConstants);NETSTANDARD2_0;NETSTANDARD</DefineConstants>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="MediaBrowser.Server.Core" Version="4.9.1.80" PrivateAssets="all" />
+  </ItemGroup>
+</Project>
