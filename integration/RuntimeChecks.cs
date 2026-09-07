@@ -47,7 +47,8 @@ public sealed class RuntimeChecks : IServerEntryPoint
         try
         {
             await Task.Delay(10000, stop.Token);
-            var options = new LibraryOptions();
+            var options = new LibraryOptions { TypeOptions = new[] { "Series", "Movie", "Season", "Episode" }.Select(type =>
+                new TypeOptions { Type = type, MetadataFetchers = new[] { "fernsehserien.de" }, ImageFetchers = new[] { "fernsehserien.de" } }).ToArray() };
             var series = await Metadata<Series, SeriesInfo>(new Series(), new SeriesInfo { ProviderIds = Ids("dark") }, options);
             var movie = await Metadata<Movie, MovieInfo>(new Movie(), new MovieInfo { ProviderIds = Ids("filme/inception") }, options);
             var season = await Metadata<Season, SeasonInfo>(new Season(), new SeasonInfo { IndexNumber = 1, SeriesProviderIds = Ids("dark") }, options);
@@ -71,7 +72,9 @@ public sealed class RuntimeChecks : IServerEntryPoint
     async Task<MetadataResult<T>> Metadata<T, TI>(T item, TI info, LibraryOptions options) where T : BaseItem, IHasLookupInfo<TI>, new() where TI : ItemLookupInfo, new()
     {
         Progress("Metadata: " + typeof(T).Name);
-        var provider = manager.GetEnabledMetadataProviders(item, options).OfType<IRemoteMetadataProvider<T, TI>>().Single(p => p.Name == "fernsehserien.de");
+        var enabled = manager.GetEnabledMetadataProviders(item, options);
+        var provider = enabled.OfType<IRemoteMetadataProvider<T, TI>>().SingleOrDefault(p => p.Name == "fernsehserien.de");
+        if (provider == null) throw new Exception("Missing provider for " + typeof(T).Name + "; enabled metadata=" + string.Join(",", enabled.Select(p => p.Name)) + "; registered image providers=" + string.Join(",", manager.ImageProviders.Select(p => p.Name)));
         var identified = (await provider.GetSearchResults(info, stop.Token)).ToArray();
         Assert(identified.Length == 1, "identify " + typeof(T).Name);
         var result = await provider.GetMetadata(info, stop.Token);

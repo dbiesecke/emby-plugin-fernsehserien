@@ -18,8 +18,9 @@ for i in $(seq 1 72); do
     mkdir -p "$root/artifacts"
     docker exec "$name" cat /config/fernsehserien-result.txt > "$root/artifacts/runtime-result.txt"
     cat "$root/artifacts/runtime-result.txt"
-    grep -q '^PASS:' "$root/artifacts/runtime-result.txt"
-    exit $?
+    if grep -q '^PASS:' "$root/artifacts/runtime-result.txt"; then exit 0; fi
+    docker logs "$name" --tail 350
+    exit 1
   fi
   if [ "$(docker inspect --format '{{.State.Running}}' "$name")" != "true" ]; then
     docker logs "$name" --tail 100
