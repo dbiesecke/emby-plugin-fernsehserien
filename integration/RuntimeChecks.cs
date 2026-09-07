@@ -16,7 +16,6 @@ using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Configuration;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Logging;
-using Emby.Plugin.Fernsehserien;
 
 public sealed class RuntimeCheckPlugin : BasePlugin
 {
@@ -59,7 +58,7 @@ public sealed class RuntimeChecks : IServerEntryPoint
             Assert(!string.IsNullOrWhiteSpace(episode.Item.Overview), "episode overview");
             Assert(manager.GetRemoteImageProviderInfo(series.Item, options).Any(p => p.Name == "fernsehserien.de"), "image provider registration");
             Progress("Image discovery and download");
-            var imageProvider = new ImageProvider(logs);
+            var imageProvider = manager.ImageProviders.OfType<IRemoteImageProvider>().Single(p => p.Name == "fernsehserien.de");
             var pictures = (await imageProvider.GetImages(series.Item, options, stop.Token)).ToArray();
             Assert(pictures.Length > 0, "image discovery");
             using (var image = await imageProvider.GetImageResponse(pictures[0].Url, stop.Token)) Assert(image.ContentLength > 12, "image download");
