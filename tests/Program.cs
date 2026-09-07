@@ -16,7 +16,7 @@ class Program
     {
         if (args.Length == 1 && args[0] == "--live-search")
         {
-            foreach (var query in new[] { ("Dark", 2017, MediaKind.Series), ("Inception", 2010, MediaKind.Movie) })
+            foreach (var query in new[] { ("Dark", 2017, MediaKind.Series), ("Inception", 2010, MediaKind.Movie), ("Escaping Bolivia", 2026, MediaKind.Series) })
             {
                 var hits = await Catalog.Search(query.Item1, query.Item3, CancellationToken.None);
                 Check(Matching.Unique(hits, query.Item1, query.Item2, query.Item3) != null, "live title search " + query.Item1);
@@ -26,13 +26,16 @@ class Program
         }
         if (args.Length > 0)
         {
-            foreach (var spec in new[] { ("dark", MediaKind.Series, "/dark"), ("movie", MediaKind.Movie, "/filme/inception"), ("season", MediaKind.Season, "/dark/episodenguide/staffel-1/33342"), ("episode", MediaKind.Episode, "/dark/folgen/1x01-geheimnisse-1144654") })
+            foreach (var spec in new[] { ("dark", MediaKind.Series, "/dark"), ("movie", MediaKind.Movie, "/filme/inception"), ("season", MediaKind.Season, "/dark/episodenguide/staffel-1/33342"), ("episode", MediaKind.Episode, "/dark/folgen/1x01-geheimnisse-1144654"), ("escaping-bolivia", MediaKind.Series, "/escaping-bolivia") })
             {
                 var e = Scraper.Detail(Page(File.ReadAllText(Path.Combine(args[0], spec.Item1 + ".html")), spec.Item3), spec.Item2);
                 Check(e != null, "live " + spec.Item1);
                 Console.WriteLine($"{spec.Item1}: {e.Name}; year={e.Year}; S{e.Season}E{e.Episode}; premiere={e.Premiere:yyyy-MM-dd}; overview={e.Overview?.Length}; images={e.Pictures.Count}; cast={e.People.Count}");
                 Check(!string.IsNullOrWhiteSpace(e.Overview), "live overview " + spec.Item1);
                 if (spec.Item1 == "dark") Check(e.Year == 2017 && e.Genres.Count > 0 && e.People.Count > 0 && e.Pictures.Count > 0, "live series fields");
+                if (spec.Item1 == "escaping-bolivia") Check(e.Year == 2025 && e.OriginalTitle == "Flukten fra Bolivia" && e.PremiereYears.Contains(2026) && e.Studios.Contains("ARD Mediathek") && Matching.Unique(new[] { e }, "Escaping Bolivia", 2026, MediaKind.Series) == e, "live original/local year matching");
+                if (spec.Item1 == "dark") Check(e.Ids.TryGetValue("Tvdb", out var tvdb) && tvdb == "334824" && e.Studios.Contains("Netflix"), "live tvdb and sender");
+                if (spec.Item1 == "episode") Check(e.People.Any(p => p.Type == "Writer") && e.People.Any(p => p.Type == "Director"), "live episode credits");
                 if (spec.Item1 == "movie") Check(e.Year == 2010 && e.Minutes == 148, "live movie fields");
                 if (spec.Item1 == "episode") Check(e.Episode == 1 && e.Season == 1 && e.Premiere?.Year == 2017, "live episode fields");
             }
@@ -42,6 +45,7 @@ class Program
             Check(liveGuide.Where(e => e.Kind == MediaKind.Episode && e.Season == 0).All(e => e.Episode == null), "specials must not receive invented numbers");
             Console.WriteLine("Live HTML checks passed."); return;
         }
+        await MetadataChecks.Run();
         // Minimal source-shaped fragments. No full copyrighted pages in the repository.
         const string movie = "<article itemscope itemtype='http://schema.org/Movie'><header><h1 itemprop=name>Der Test</h1><div>USA 2010 (148 Min.)</div><div itemscope itemtype='http://schema.org/VideoObject' itemprop=trailer><meta itemprop=name content='WRONG'><meta itemprop=description content='TRAILER'></div></header><meta itemprop=alternateName content='The Test'><div class=episode-output-inhalt-inner>Film <script>advert()</script> Text</div><meta itemprop=genre content='Drama'><abbr itemprop=countryOfOrigin title='USA'>US</abbr><ea-angabe><ea-angabe-titel>Deutsche TV-Premiere</ea-angabe-titel><ea-angabe-datum>01.01.2020</ea-angabe-datum></ea-angabe><ea-angabe><ea-angabe-titel>Original-Kinostart</ea-angabe-titel><ea-angabe-datum>02.02.2010</ea-angabe-datum></ea-angabe></article>";
         var m = Scraper.Detail(Page(movie, "/filme/test"), MediaKind.Movie);

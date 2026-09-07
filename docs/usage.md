@@ -1,4 +1,4 @@
-# Nutzung: Emby fernsehserien.de 0.1.0
+# Nutzung: Emby fernsehserien.de 0.2.0
 
 ## Bibliothek konfigurieren
 
@@ -8,13 +8,29 @@ Zuerst an einer kleinen Testbibliothek identifizieren und aktualisieren. Bei Ser
 
 ## IDs und Metadaten
 
-Der Provider-Schlüssel heißt `Fernsehserien`. Der Wert ist der Seitenpfad ohne führenden Slash (zum Beispiel `dark` oder `filme/inception`). Bestehende IDs werden bei Aktualisierung erneut abgerufen. Unterschiedliche gleichnamige Treffer werden nicht automatisch ausgewählt. Bei Remakes immer das Jahr prüfen.
+Der Provider-Schlüssel heißt `Fernsehserien`. Der Wert ist der Seitenpfad ohne führenden Slash (zum Beispiel `dark` oder `filme/inception`). Bestehende IDs werden bei Aktualisierung erneut abgerufen. Unterschiedliche gleichnamige Treffer werden nicht automatisch ausgewählt. Bei Remakes immer das Jahr prüfen. Serien akzeptieren neben dem Produktionsjahr die auf derselben Detailseite ausdrücklich genannten Original- und regionalen Premierenjahre. Es gibt keine pauschale Toleranz von ±1 Jahr. Treffen mehrere gleichnamige Serien auf das angegebene Jahr zu, bleibt die automatische Zuordnung offen. Das gespeicherte Produktionsjahr und die Originalpremiere werden dadurch nicht auf das deutsche Startjahr geändert.
+
+Beispiel: **Escaping Bolivia** hat Produktionsjahr 2025, Originalpremiere am 25.12.2025 und deutsche Streaming-Premiere am 04.09.2026. Sowohl 2025 als auch 2026 werden zur Zuordnung akzeptiert. Der Originaltitel lautet **Flukten fra Bolivia**. Filme behalten die strikte Produktionsjahr-Zuordnung.
 
 Originalpremieren werden von deutschen Premieren getrennt. Laufzeiten stammen aus dem eigentlichen Film-/Episodenbereich, nicht aus Trailern. Besetzung, Rollen, Regie, Produktionsfirmen und externe IDs erscheinen nur, wenn sie im passenden Quellbereich ausdrücklich vorhanden sind. Abdeckung hängt vom Titel ab.
 
 Fehlende Felder liefert das Plugin leer an Emby's regulären Metadatenprozess. Es verändert keine Bibliotheksdateien und schreibt nicht direkt in Emby's Datenbank. Emby wendet Providerprioritäten, Aktualisierungsmodus und Feldsperren an. Vor einer breiten Aktualisierung das Verhalten gesperrter Felder in der eigenen Bibliothek prüfen.
 
 Unnummerierte Specials werden nicht als S00E00 oder nach Listenposition einsortiert. Eine konkrete Episoden-ID ermöglicht ihre manuelle Identifizierung und bewahrt die vorhandene Nummerierung.
+
+## Zusätzliche Metadaten ohne weitere Abrufe
+
+TVDB: Numerische IDs aus Legacy-Links (`?tab=series&id=334824`) und passenden Dereferrer-Links werden unter `Tvdb` gespeichert. Das funktioniert beispielsweise bei Dark. Ein reiner Slug-Link wie `thetvdb.com/series/flukten-fra-bolivia` enthält keine numerische ID; er wird nicht geöffnet und nicht als ID gespeichert. Widersprüchliche IDs werden ausgelassen. Externe Links in Werbung, Personenprofilen und fremden Episoden sind keine Titel-IDs.
+
+Originaltitel: Explizite Originaltitel-Angaben haben Vorrang vor sprachmarkierten Titeln im Produktionsbereich, `alternateName` und eindeutigen Titelklammern. Laufzeiten und reine Zahlen werden nicht zu Titeln. Ohne Quellbeleg bleibt das Feld leer.
+
+Cast/Crew: Bis zu zehn Schauspieler in Quellreihenfolge, dazu bereits vorhandene Regie-, Drehbuch- und Produktionscredits. Derselbe Mensch darf mit mehreren ausdrücklich genannten Tätigkeiten erscheinen. Identische Personen-/Rollen-/Tätigkeitskombinationen werden entfernt. Ein `creator`-Eintrag wird nur bei ausdrücklicher Drehbuchangabe als Autor behandelt. Auch die eigene Cast-/Crew-Sektion einer Episodenseite wird berücksichtigt; Filmografien und weiterführende Cast-Seiten werden nicht geladen.
+
+Studios: Produktionsfirmen plus Sender/Plattformen der Original- und deutschen Premieren, zum Beispiel TV 2 Play, ARD Mediathek und One. Wiederholungstermine werden nicht berücksichtigt. Schreibraum und Duplikate werden bereinigt.
+
+Genres: Sci-Fi/Science Fiction → Science-Fiction, Comedy → Komödie, Doku/Documentary → Dokumentation, Crime/Krimiserie → Krimi. Bekannte Action-, Drama- und Thriller-Serienbezeichnungen werden vereinheitlicht. Fantasy- & Sci-Fi-Serien wird in zwei Genres aufgeteilt. Unbekannte Quellgenres bleiben erhalten; Anime und Animation bleiben getrennt.
+
+Alle diese Felder stammen aus den ohnehin geladenen Seiten. Es gibt keine zusätzlichen TVDB-, Personen-, Sender- oder Genre-Abfragen. Bei einer Suchweiterleitung direkt auf die Detailseite wird deren HTML wiederverwendet; der bisherige doppelte Detailabruf entfällt. Sonstige Episodenguide- und Bildabrufe bleiben unverändert.
 
 ## Bilder
 
@@ -42,7 +58,7 @@ Für einen manuellen Vergleich können lokal abgerufene Dateien `dark.html`, `mo
 dotnet run --project tests/Checks.csproj -c Release -- /pfad/zu/html-dateien
 ```
 
-Die echte Titelsuche lässt sich gezielt mit `dotnet run --project tests/Checks.csproj -c Release -- --live-search` prüfen. Dark (2017) und Inception (2010) wurden erfolgreich gesucht und eindeutig zugeordnet.
+Die echte Titelsuche lässt sich gezielt mit `dotnet run --project tests/Checks.csproj -c Release -- --live-search` prüfen. Die Prüfung umfasst Dark (2017), Inception (2010) und Escaping Bolivia mit deutschem Startjahr 2026.
 
 Vollständige Website-Inhalte werden nicht mit dem Repository verteilt. Der Scraper übernimmt erprobte Konzepte aus `fernsehserien-mcp` und `cf-media-search`: Suchweiterleitungen, Plus-Kodierung, Titel-/Jahreserkennung und Episodenguide-Auswertung. Ein unbestätigter Slug-Fallback wurde bewusst nicht übernommen.
 
@@ -52,13 +68,9 @@ Tags müssen zur Version in der Projektdatei passen. Für Updates Projekt-/Assem
 
 ## Prüfstatus
 
-- Release-DLL gegen Emby SDK 4.9.1.80: lokal gebaut.
-- Kleine Parser-/HTTP-Prüfungen: lokal bestanden.
-- Echte HTML-Seiten von Dark, Inception, Staffel 1 und Folge 1: lokal bestanden; 26 nummerierte Dark-Episoden korrekt zugeordnet.
-- Emby 4.9.1.90 und 4.10.0.20 Beta: isolierte GitHub-Laufzeitprüfungen am 07.09.2026 bestanden.
-- Bibliotheksrefresh: gesperrter Titel bleibt erhalten, ungesperrte Beschreibung wird aktualisiert und vorhandenes Bild bleibt bestehen; auf beiden Zielversionen bestanden.
+Die lokale Prüfsammlung deckt die bisherigen Parser-/HTTP-Fälle und die neuen Metadaten ab: TVDB, Originaltitel, Cast/Crew, Sender, Genres, regionale Premierenjahre sowie Mehrdeutigkeit. Ein gezielter HTTP-Handler belegt die Extraktion aller neuen Felder mit genau einem Seitenabruf und anschließender Cache-Wiederverwendung.
 
-Nachweis: [erfolgreicher Build und beide Runtime-Prüfungen](https://github.com/dbiesecke/emby-plugin-fernsehserien/actions/runs/34122050716). Dies bestätigt die angegebenen Serverversionen unter Linux; andere 4.9-Patchstände und Betriebssysteme wurden nicht separat gestartet.
+Die CI startet isolierte Emby-Instanzen in den Versionen **4.9.1.90** und **4.10.0.20 Beta** und prüft Providerregistrierung, Metadaten, Bilder, Jahresabweichung bei Escaping Bolivia und Refresh mit Feldsperren. Der aktuelle commitbezogene Status und die Testberichte stehen unter [GitHub Actions](https://github.com/dbiesecke/emby-plugin-fernsehserien/actions). Andere 4.9-Patchstände und Betriebssysteme gehören nicht zur gestarteten Testmatrix.
 
 ## Update und Rollback
 

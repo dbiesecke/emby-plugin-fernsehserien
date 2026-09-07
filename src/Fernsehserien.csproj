@@ -4,8 +4,8 @@
     <LangVersion>latest</LangVersion>
     <AssemblyName>Emby.Plugin.Fernsehserien</AssemblyName>
     <RootNamespace>Emby.Plugin.Fernsehserien</RootNamespace>
-    <Version>0.1.0</Version>
-    <AssemblyVersion>0.1.0.0</AssemblyVersion>
+    <Version>0.2.0</Version>
+    <AssemblyVersion>0.2.0.0</AssemblyVersion>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
     <DefineConstants>$(DefineConstants);NETSTANDARD2_0;NETSTANDARD</DefineConstants>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>

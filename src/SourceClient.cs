@@ -24,7 +24,7 @@ namespace Emby.Plugin.Fernsehserien
         {
             http = new HttpClient(handler ?? new HttpClientHandler { AllowAutoRedirect = false, AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate });
             http.Timeout = Timeout.InfiniteTimeSpan;
-            http.DefaultRequestHeaders.UserAgent.ParseAdd("Emby-Fernsehserien/0.1 (+https://github.com/dbiesecke/emby-plugin-fernsehserien)");
+            http.DefaultRequestHeaders.UserAgent.ParseAdd("Emby-Fernsehserien/0.2 (+https://github.com/dbiesecke/emby-plugin-fernsehserien)");
             http.DefaultRequestHeaders.AcceptLanguage.ParseAdd("de-DE,de;q=0.9");
         }
         public static Uri Validate(string value, bool image = false, Uri relativeTo = null)

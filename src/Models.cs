@@ -13,6 +13,7 @@ namespace Emby.Plugin.Fernsehserien
         public MediaKind Kind;
         public int? Year, Season, Episode, Minutes;
         public DateTimeOffset? Premiere;
+        public readonly HashSet<int> PremiereYears = new HashSet<int>();
         public readonly List<string> Genres = new List<string>();
         public readonly List<string> Countries = new List<string>();
         public readonly List<string> Studios = new List<string>();
@@ -30,7 +31,7 @@ namespace Emby.Plugin.Fernsehserien
             var name = Normalize(title);
             var matches = entries.Where(x => x.Kind == kind && name.Length > 0 &&
                 (Normalize(x.Name) == name || Normalize(x.OriginalTitle) == name) &&
-                (!year.HasValue || x.Year == year)).GroupBy(x => x.Path).Select(x => x.First()).Take(2).ToArray();
+                (!year.HasValue || x.Year == year || kind == MediaKind.Series && x.PremiereYears.Contains(year.Value))).GroupBy(x => x.Path).Select(x => x.First()).Take(2).ToArray();
             return matches.Length == 1 ? matches[0] : null;
         }
     }

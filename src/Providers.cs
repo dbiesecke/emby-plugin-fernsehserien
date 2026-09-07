@@ -36,14 +36,17 @@ namespace Emby.Plugin.Fernsehserien
     internal static class Catalog
     {
         public static string Id(IDictionary<string,string> ids) => ids != null && ids.TryGetValue(Plugin.ProviderKey, out var id) ? id : null;
-        public static async Task<List<Entry>> Search(string name, MediaKind kind, CancellationToken ct)
+        public static async Task<List<Entry>> Search(string name, MediaKind kind, CancellationToken ct, SourceClient client = null)
         {
             if (string.IsNullOrWhiteSpace(name)) return new List<Entry>();
+            client = client ?? SourceClient.Shared;
             var query = string.Join("+", name.Trim().Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).Select(Uri.EscapeDataString));
-            var page = await SourceClient.Shared.Get("/suche/" + query, true, ct).ConfigureAwait(false);
+            var page = await client.Get("/suche/" + query, true, ct).ConfigureAwait(false);
             var hits = Scraper.Search(page).Where(e => e.Kind == kind).ToList();
             // Enrich all bounded candidates before automatic matching; never choose from a partial success set.
-            return (await Task.WhenAll(hits.Select(async e => await Detail(e.Path, kind, ct).ConfigureAwait(false))).ConfigureAwait(false)).Where(e => e != null).ToList();
+            return (await Task.WhenAll(hits.Select(async e =>
+                page.Url.AbsolutePath.TrimEnd('/') == e.Path ? e :
+                Scraper.Detail(await client.Get(e.Path, false, ct).ConfigureAwait(false), kind))).ConfigureAwait(false)).Where(e => e != null).ToList();
         }
         public static async Task<Entry> Detail(string id, MediaKind kind, CancellationToken ct) =>
             Scraper.Detail(await SourceClient.Shared.Get(id, false, ct).ConfigureAwait(false), kind);

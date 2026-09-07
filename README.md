@@ -1,6 +1,15 @@
-# fernsehserien.de für Emby
+# fernsehserien.de für Emby — 0.2.0
 
 Eigenständiger Metadaten- und Bildprovider für **Serien, Filme, Staffeln und Episoden**. Deutsche Texte, Originaltitel, Produktionsdaten, Genres, Besetzung und verfügbare Bilder direkt von fernsehserien.de. Bildtypen werden anhand von Kontext und Abmessungen getrennt.
+
+## Neu in 0.2.0
+
+- TVDB-IDs aus eindeutigen numerischen Quelllinks, vollständigere Originaltitel und die wichtigsten Cast-/Crew-Angaben.
+- Original- und deutsche Premiere-Sender zusammen mit Produktionsfirmen unter Studios.
+- Deutsche Genre-Namen mit Synonymbereinigung und Duplikatentfernung.
+- Serienzuordnung auch über belegte regionale Premierenjahre, ohne pauschale Jahrestoleranz.
+
+Diese Erweiterungen werten ausschließlich bereits geladenes HTML aus. TVDB-, Personen- und Senderseiten werden nicht nachgeladen.
 
 ## Installation
 
@@ -21,11 +30,11 @@ Unter **Identifizieren** nach Titel suchen oder im Feld **fernsehserien.de (Seit
 | Staffel | `dark/episodenguide/staffel-1/33342` |
 | Episode | `dark/folgen/1x01-geheimnisse-1144654` |
 
-Serien vor ihren Staffeln und Episoden identifizieren. Automatische Titelzuordnung verlangt einen eindeutigen Titel/Originaltitel und – falls angegeben – dasselbe Jahr. Unnummerierte Specials benötigen eine explizite Quell-ID. Es wird keine Nummer aus der Listenposition erfunden.
+Serien vor ihren Staffeln und Episoden identifizieren. Automatische Titelzuordnung verlangt einen eindeutigen Titel/Originaltitel und – falls angegeben – ein belegtes Produktions- oder Serien-Premierenjahr. Beispiel: `Escaping Bolivia (2026)` passt zum Produktionsjahr 2025, weil die Seite den deutschen Start 2026 belegt. Unnummerierte Specials benötigen eine explizite Quell-ID. Es wird keine Nummer aus der Listenposition erfunden.
 
 ## Kompatibilität und Build
 
-Ziele: **Emby 4.9** (Prüfinstanz 4.9.1.90) und **4.10.0.20 Beta**. Build gegen SDK 4.9.1.80, `netstandard2.0`, eine plattformübergreifende DLL. Build, Metadaten, Bilder und Refresh mit Feldsperren sind auf beiden Zielversionen unter Linux erfolgreich geprüft. Details und Nachweis stehen in [docs/usage.md](docs/usage.md).
+Ziele: **Emby 4.9** (Prüfinstanz 4.9.1.90) und **4.10.0.20 Beta**. Build gegen SDK 4.9.1.80, `netstandard2.0`, eine plattformübergreifende DLL. Die GitHub-Pipeline prüft Build, Metadaten, Bilder und Refresh mit Feldsperren auf beiden Zielversionen unter Linux. Details und Nachweis stehen in [docs/usage.md](docs/usage.md).
 
 ```sh
 dotnet restore tests/Checks.csproj --locked-mode
@@ -34,6 +43,6 @@ dotnet run --project tests/Checks.csproj -c Release --no-build
 python3 scripts/package.py
 ```
 
-`global.json` fixiert .NET SDK 10.0.302, Lockdateien fixieren NuGet-Abhängigkeiten. PRs und Main-Pushes bauen und prüfen. Main-Pushes und Tags starten zusätzlich Wegwerf-Emby-Container. Tags `v0.1.0` bzw. `v0.1.0-beta.1` erzeugen nach erfolgreichen Prüfungen Releases mit DLL, ZIP und SHA-256-Prüfsummen.
+`global.json` fixiert .NET SDK 10.0.302, Lockdateien fixieren NuGet-Abhängigkeiten. PRs und Main-Pushes bauen und prüfen. Main-Pushes und Tags starten zusätzlich Wegwerf-Emby-Container. Tags `v0.2.0` bzw. `v0.2.0-beta.1` erzeugen nach erfolgreichen Prüfungen Releases mit DLL, ZIP und SHA-256-Prüfsummen.
 
 [Ausführliche Nutzung, Diagnose und Rollback](docs/usage.md) · [Drittanbieterhinweise](THIRD-PARTY-NOTICES.md)

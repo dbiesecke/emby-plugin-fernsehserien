@@ -7,7 +7,7 @@ using Emby.Plugin.Fernsehserien.HtmlParser;
 
 namespace Emby.Plugin.Fernsehserien
 {
-    internal static class Scraper
+    internal static partial class Scraper
     {
         internal static HtmlNode Dom(string html) { var doc = new HtmlDocument(); doc.LoadHtml(html); return doc.DocumentNode; }
         internal static bool Prop(HtmlNode n, string name) => (n.GetAttributeValue("itemprop", "")).Split(' ').Contains(name);
@@ -48,9 +48,6 @@ namespace Emby.Plugin.Fernsehserien
             var production = scope.Descendants().FirstOrDefault(n => Class(n, "serie-produktionsjahre")) ??
                 (kind == MediaKind.Movie ? scope.Descendants("header").FirstOrDefault() : null);
             e.Year = Capture(Text(production), @"\b((?:19|20)\d{2})\b");
-            e.OriginalTitle = Field(scope, "alternateName");
-            if (e.OriginalTitle == null) e.OriginalTitle = Regex.Match(Text(production) ?? "", @"\(([^()]*\p{L}[^()]*)\)\s*$").Groups[1].Value;
-            if (Regex.IsMatch(e.OriginalTitle ?? "", @"\d+\s*Min")) e.OriginalTitle = null;
             var description = Own(scope).FirstOrDefault(n => Prop(n, "description")) ?? Own(scope).FirstOrDefault(n => Class(n, "episode-output-inhalt-inner")) ??
                 (kind == MediaKind.Season ? Own(scope).FirstOrDefault(n => Class(n, "staffelinfo")) : null);
             e.Overview = Text(description);
@@ -65,34 +62,7 @@ namespace Emby.Plugin.Fernsehserien
             e.Episode = Number(Field(scope, "episodeNumber"));
             if (kind == MediaKind.Episode) e.Season = Capture(minuteText, @"Staffel\s+(\d+)");
             if (kind == MediaKind.Season && !e.Season.HasValue && name.Equals("Specials", StringComparison.OrdinalIgnoreCase)) e.Season = 0;
-            foreach (var n in Own(scope).Where(n => Prop(n, "genre"))) Add(e.Genres, Value(n));
-            foreach (var n in Own(scope).Where(n => Class(n, "genrepillen")).SelectMany(n => n.Descendants("li"))) Add(e.Genres, Text(n));
-            foreach (var n in Own(scope).Where(n => Prop(n, "countryOfOrigin"))) Add(e.Countries, Value(n));
-            foreach (var n in Own(scope).Where(n => Prop(n, "productionCompany"))) Add(e.Studios, Field(n, "name") ?? Text(n));
-            foreach (var n in Own(scope).Where(n => Prop(n, "actor") || Prop(n, "director") || Prop(n, "creator")))
-            {
-                var personName = Field(n, "name");
-                if (!string.IsNullOrEmpty(personName)) e.People.Add(new Person { Name = personName, Role = Text(n.Descendants("dd").FirstOrDefault()), Type = Prop(n, "actor") ? "Actor" : Prop(n, "director") ? "Director" : "Writer" });
-            }
-            var dates = new List<DateTimeOffset>();
-            foreach (var n in Own(scope).Where(n => n.Name == "ea-angabe"))
-            {
-                var label = Text(n.Descendants("ea-angabe-titel").FirstOrDefault()) ?? "";
-                if (!label.StartsWith("Original", StringComparison.OrdinalIgnoreCase)) continue;
-                var raw = Value(n.Descendants("time").FirstOrDefault()) ?? Text(n.Descendants("ea-angabe-datum").FirstOrDefault());
-                var date = Regex.Match(raw ?? "", @"\d{4}-\d{2}-\d{2}|\d{2}\.\d{2}\.\d{4}").Value;
-                if (DateTimeOffset.TryParseExact(date, new[] { "yyyy-MM-dd", "dd.MM.yyyy" }, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var parsed)) dates.Add(parsed);
-            }
-            e.Premiere = dates.Count == 0 ? (DateTimeOffset?)null : dates.Min();
-            // Never derive external IDs from ads, recommendations or navigation.
-            foreach (var n in Own(scope).Where(n => Prop(n, "sameAs")))
-            {
-                var link = n.GetAttributeValue("href", n.GetAttributeValue("content", ""));
-                var imdb = Regex.Match(link, @"^https://(?:www\.)?imdb\.com/title/(tt\d+)(?:/|$)");
-                if (imdb.Success) e.Ids["Imdb"] = imdb.Groups[1].Value;
-                var tmdb = Regex.Match(link, @"^https://(?:www\.)?themoviedb\.org/(?:movie|tv)/(\d+)(?:[/-]|$)");
-                if (tmdb.Success) e.Ids["Tmdb"] = tmdb.Groups[1].Value;
-            }
+            Enrich(root, scope, production, e);
             Images(root, scope, page.Url, e);
             return e;
         }

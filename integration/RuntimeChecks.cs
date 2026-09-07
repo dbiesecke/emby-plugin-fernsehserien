@@ -53,6 +53,10 @@ public sealed class RuntimeChecks : IServerEntryPoint
             var movie = await Metadata<Movie, MovieInfo>(new Movie(), new MovieInfo { ProviderIds = Ids("filme/inception") }, options);
             var season = await Metadata<Season, SeasonInfo>(new Season(), new SeasonInfo { IndexNumber = 1, SeriesProviderIds = Ids("dark") }, options);
             var episode = await Metadata<Episode, EpisodeInfo>(new Episode(), new EpisodeInfo { IndexNumber = 1, ParentIndexNumber = 1, SeriesProviderIds = Ids("dark") }, options);
+            Assert(series.Item.GetProviderId("Tvdb") == "334824" && series.Item.Studios.Contains("Netflix"), "TVDB ID and premiere sender");
+            Assert(movie.People.Any(p => p.Type == PersonType.Writer) && movie.People.Any(p => p.Type == PersonType.Producer), "principal crew types");
+            var regional = await Metadata<Series, SeriesInfo>(new Series(), new SeriesInfo { Name = "Escaping Bolivia", Year = 2026 }, options);
+            Assert(regional.Item.ProductionYear == 2025 && regional.Item.OriginalTitle == "Flukten fra Bolivia", "regional premiere year and original name");
             Assert(series.Item.Name == "Dark" && series.Item.ProductionYear == 2017, "series mapping");
             Assert(movie.Item.Name == "Inception" && movie.Item.ProductionYear == 2010, "movie mapping");
             Assert(season.Item.IndexNumber == 1 && episode.Item.IndexNumber == 1 && episode.Item.ParentIndexNumber == 1, "episode mapping");
