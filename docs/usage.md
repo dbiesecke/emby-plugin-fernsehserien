@@ -42,9 +42,11 @@ Für einen manuellen Vergleich können lokal abgerufene Dateien `dark.html`, `mo
 dotnet run --project tests/Checks.csproj -c Release -- /pfad/zu/html-dateien
 ```
 
+Die echte Titelsuche lässt sich gezielt mit `dotnet run --project tests/Checks.csproj -c Release -- --live-search` prüfen. Dark (2017) und Inception (2010) wurden erfolgreich gesucht und eindeutig zugeordnet.
+
 Vollständige Website-Inhalte werden nicht mit dem Repository verteilt. Der Scraper übernimmt erprobte Konzepte aus `fernsehserien-mcp` und `cf-media-search`: Suchweiterleitungen, Plus-Kodierung, Titel-/Jahreserkennung und Episodenguide-Auswertung. Ein unbestätigter Slug-Fallback wurde bewusst nicht übernommen.
 
-Für Laufzeitprüfungen baut die Pipeline eine **separate Test-DLL** und lädt diese mit dem Plugin ausschließlich in Wegwerfcontainern. Sie prüft Emby's Providerregistrierung, Identifizierung, Metadaten für alle vier Typen sowie Bildregistrierung und Download. Sie öffnet keine Hostports und benutzt keine Produktionsdaten. Diese Prüfung benötigt Zugriff auf fernsehserien.de und kann bei einer Quellsperre fehlschlagen.
+Für Laufzeitprüfungen baut die Pipeline eine **separate Test-DLL** und lädt diese mit dem Plugin ausschließlich in Wegwerfcontainern. Sie prüft Emby's Providerregistrierung, Identifizierung, Metadaten für alle vier Typen, Bildregistrierung und Download sowie einen Bibliotheksrefresh mit gesperrtem Titel und vorhandenem Bild. Sie öffnet keine Hostports und benutzt keine Produktionsdaten. Diese Prüfung benötigt Zugriff auf fernsehserien.de und kann bei einer Quellsperre fehlschlagen.
 
 Tags müssen zur Version in der Projektdatei passen. Für Updates Projekt-/Assemblyversion, Dokumentation und passende Beispiele gemeinsam aktualisieren. Release-ZIP enthält nur Plugin-DLL und Dokumentation/Lizenzhinweise. Ein fehlgeschlagener Laufzeittest blockiert die Veröffentlichung.
 
@@ -53,8 +55,10 @@ Tags müssen zur Version in der Projektdatei passen. Für Updates Projekt-/Assem
 - Release-DLL gegen Emby SDK 4.9.1.80: lokal gebaut.
 - Kleine Parser-/HTTP-Prüfungen: lokal bestanden.
 - Echte HTML-Seiten von Dark, Inception, Staffel 1 und Folge 1: lokal bestanden; 26 nummerierte Dark-Episoden korrekt zugeordnet.
-- Emby 4.9.1.90 und 4.10.0.20: GitHub-Laufzeitprüfung eingerichtet; Ergebnis noch ausstehend.
-- Vollständiger Bibliotheksrefresh einschließlich Erhalt gesperrter Felder: noch nicht durch Laufzeitprüfung bestätigt.
+- Emby 4.9.1.90 und 4.10.0.20 Beta: isolierte GitHub-Laufzeitprüfungen am 07.09.2026 bestanden.
+- Bibliotheksrefresh: gesperrter Titel bleibt erhalten, ungesperrte Beschreibung wird aktualisiert und vorhandenes Bild bleibt bestehen; auf beiden Zielversionen bestanden.
+
+Nachweis: [erfolgreicher Build und beide Runtime-Prüfungen](https://github.com/dbiesecke/emby-plugin-fernsehserien/actions/runs/34122050716). Dies bestätigt die angegebenen Serverversionen unter Linux; andere 4.9-Patchstände und Betriebssysteme wurden nicht separat gestartet.
 
 ## Update und Rollback
 

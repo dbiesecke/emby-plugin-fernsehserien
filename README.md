@@ -25,7 +25,7 @@ Serien vor ihren Staffeln und Episoden identifizieren. Automatische Titelzuordnu
 
 ## Kompatibilität und Build
 
-Ziele: **Emby 4.9** (Prüfinstanz 4.9.1.90) und **4.10.0.20 Beta**. Build gegen SDK 4.9.1.80, `netstandard2.0`, eine plattformübergreifende DLL. Der genaue Prüfstatus steht in [docs/usage.md](docs/usage.md).
+Ziele: **Emby 4.9** (Prüfinstanz 4.9.1.90) und **4.10.0.20 Beta**. Build gegen SDK 4.9.1.80, `netstandard2.0`, eine plattformübergreifende DLL. Build, Metadaten, Bilder und Refresh mit Feldsperren sind auf beiden Zielversionen unter Linux erfolgreich geprüft. Details und Nachweis stehen in [docs/usage.md](docs/usage.md).
 
 ```sh
 dotnet restore tests/Checks.csproj --locked-mode

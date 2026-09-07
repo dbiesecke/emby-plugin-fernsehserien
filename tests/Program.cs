@@ -14,6 +14,16 @@ class Program
     static Page Page(string html, string path) => new Page { Html = html, Url = new Uri(SourceClient.Origin, path) };
     static async Task Main(string[] args)
     {
+        if (args.Length == 1 && args[0] == "--live-search")
+        {
+            foreach (var query in new[] { ("Dark", 2017, MediaKind.Series), ("Inception", 2010, MediaKind.Movie) })
+            {
+                var hits = await Catalog.Search(query.Item1, query.Item3, CancellationToken.None);
+                Check(Matching.Unique(hits, query.Item1, query.Item2, query.Item3) != null, "live title search " + query.Item1);
+                Console.WriteLine("Live title search passed: " + query.Item1);
+            }
+            return;
+        }
         if (args.Length > 0)
         {
             foreach (var spec in new[] { ("dark", MediaKind.Series, "/dark"), ("movie", MediaKind.Movie, "/filme/inception"), ("season", MediaKind.Season, "/dark/episodenguide/staffel-1/33342"), ("episode", MediaKind.Episode, "/dark/folgen/1x01-geheimnisse-1144654") })
