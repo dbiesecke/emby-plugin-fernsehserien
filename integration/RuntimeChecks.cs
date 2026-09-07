@@ -35,9 +35,13 @@ public sealed class RuntimeChecks : IServerEntryPoint
     public void Run()
     {
         if (!File.Exists("/config/fernsehserien-ci")) return;
-        File.WriteAllText("/config/fernsehserien-progress.txt", "Runtime entrypoint loaded");
+        Progress("Runtime entrypoint loaded");
         run = Task.Run(Check);
+        // Observe failures that happen while JIT-compiling Check, before its own try/catch runs.
+        run.ContinueWith(t => File.WriteAllText("/config/fernsehserien-result.txt", "FAIL: " + t.Exception + "\n"),
+            CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted, TaskScheduler.Default);
     }
+    static void Progress(string stage) { Console.WriteLine("Fernsehserien CI: " + stage); File.WriteAllText("/config/fernsehserien-progress.txt", stage); }
     static void Assert(bool value, string why) { if (!value) throw new Exception(why); }
     async Task Check()
     {
@@ -54,10 +58,12 @@ public sealed class RuntimeChecks : IServerEntryPoint
             Assert(season.Item.IndexNumber == 1 && episode.Item.IndexNumber == 1 && episode.Item.ParentIndexNumber == 1, "episode mapping");
             Assert(!string.IsNullOrWhiteSpace(episode.Item.Overview), "episode overview");
             Assert(manager.GetRemoteImageProviderInfo(series.Item, options).Any(p => p.Name == "fernsehserien.de"), "image provider registration");
+            Progress("Image discovery and download");
             var imageProvider = new ImageProvider(logs);
             var pictures = (await imageProvider.GetImages(series.Item, options, stop.Token)).ToArray();
             Assert(pictures.Length > 0, "image discovery");
             using (var image = await imageProvider.GetImageResponse(pictures[0].Url, stop.Token)) Assert(image.ContentLength > 12, "image download");
+            Progress("Library refresh and field locks");
             await MergeCheck(options);
             File.WriteAllText("/config/fernsehserien-result.txt", "PASS: provider registration, identify, series/movie/season/episode metadata, image registration and download; locked-field refresh and existing image preservation\n");
         }
@@ -65,6 +71,7 @@ public sealed class RuntimeChecks : IServerEntryPoint
     }
     async Task<MetadataResult<T>> Metadata<T, TI>(T item, TI info, LibraryOptions options) where T : BaseItem, IHasLookupInfo<TI>, new() where TI : ItemLookupInfo, new()
     {
+        Progress("Metadata: " + typeof(T).Name);
         var provider = manager.GetEnabledMetadataProviders(item, options).OfType<IRemoteMetadataProvider<T, TI>>().Single(p => p.Name == "fernsehserien.de");
         var identified = (await provider.GetSearchResults(info, stop.Token)).ToArray();
         Assert(identified.Length == 1, "identify " + typeof(T).Name);

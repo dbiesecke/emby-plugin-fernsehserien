@@ -13,8 +13,8 @@ cp "$root/integration/bin/Release/netstandard2.0/Fernsehserien.RuntimeChecks.dll
 touch "$config/fernsehserien-ci"
 chmod -R a+rwX "$config"
 docker run -d --name "$name" --volume "$config:/config" "$image" >/dev/null
-for i in $(seq 1 120); do
-  if docker exec "$name" test -f /config/fernsehserien-result.txt; then
+for i in $(seq 1 72); do
+  if docker exec "$name" /bin/sh -c '[ -f /config/fernsehserien-result.txt ]'; then
     mkdir -p "$root/artifacts"
     docker exec "$name" cat /config/fernsehserien-result.txt > "$root/artifacts/runtime-result.txt"
     cat "$root/artifacts/runtime-result.txt"
