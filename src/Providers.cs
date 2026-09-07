@@ -82,6 +82,7 @@ namespace Emby.Plugin.Fernsehserien
                 var found = await Catalog.Detail(id, Kind, ct).ConfigureAwait(false);
                 return found == null ? new List<Entry>() : new List<Entry> { found };
             }
+            if (info is SeasonInfo s && s.SeriesDisplayOrder != SeriesDisplayOrder.Aired || info is EpisodeInfo ep && ep.SeriesDisplayOrder != SeriesDisplayOrder.Aired) return new List<Entry>();
             if (info is SeasonInfo season) return await Catalog.Children(Catalog.Id(season.SeriesProviderIds), Kind, info.IndexNumber, null, ct).ConfigureAwait(false);
             if (info is EpisodeInfo episode) return await Catalog.Children(Catalog.Id(episode.SeriesProviderIds), Kind, info.ParentIndexNumber, info.IndexNumber, ct).ConfigureAwait(false);
             return await Catalog.Search(info.Name, Kind, ct).ConfigureAwait(false);
@@ -122,7 +123,7 @@ namespace Emby.Plugin.Fernsehserien
             }
             catch (Exception ex) when (Expected(ex)) { logger.Warn("fernsehserien.de metadata failed: {0}", ex.GetType().Name); return new MetadataResult<T>(); }
         }
-        internal static bool Expected(Exception ex) => ex is HttpRequestException || ex is InvalidDataException || ex is ArgumentException;
+        internal static bool Expected(Exception ex) => ex is HttpRequestException || ex is InvalidDataException || ex is ArgumentException || ex is UriFormatException;
         public Task<HttpResponseInfo> GetImageResponse(string url, CancellationToken ct) => Catalog.Image(url, ct);
     }
     public sealed class SeriesProvider : MetadataProvider<Series, SeriesInfo> { public SeriesProvider(ILogManager logs) : base(logs) { } internal override MediaKind Kind => MediaKind.Series; }

@@ -5,6 +5,10 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using MediaBrowser.Controller.Entities;
+using MediaBrowser.Common.Plugins;
+using MediaBrowser.Controller.Library;
+using MediaBrowser.Model.IO;
+using System.Collections.Generic;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Plugins;
@@ -14,16 +18,24 @@ using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Logging;
 using Emby.Plugin.Fernsehserien;
 
+public sealed class RuntimeCheckPlugin : BasePlugin
+{
+    public override string Name => "Fernsehserien CI checks (TEST ONLY)";
+    public override Guid Id => new Guid("7bc8bade-dc17-47d7-ac85-c66d0e011b61");
+}
 public sealed class RuntimeChecks : IServerEntryPoint
 {
     readonly IProviderManager manager;
     readonly ILogManager logs;
+    readonly IFileSystem files;
+    readonly ILibraryManager library;
     readonly CancellationTokenSource stop = new CancellationTokenSource();
     Task run;
-    public RuntimeChecks(IProviderManager manager, ILogManager logs) { this.manager = manager; this.logs = logs; }
+    public RuntimeChecks(IProviderManager manager, ILogManager logs, IFileSystem files, ILibraryManager library) { this.manager = manager; this.logs = logs; this.files = files; this.library = library; }
     public void Run()
     {
-        if (Environment.GetEnvironmentVariable("FERNSEHSERIEN_CI") != "1") return;
+        if (!File.Exists("/config/fernsehserien-ci")) return;
+        File.WriteAllText("/config/fernsehserien-progress.txt", "Runtime entrypoint loaded");
         run = Task.Run(Check);
     }
     static void Assert(bool value, string why) { if (!value) throw new Exception(why); }
@@ -46,7 +58,8 @@ public sealed class RuntimeChecks : IServerEntryPoint
             var pictures = (await imageProvider.GetImages(series.Item, options, stop.Token)).ToArray();
             Assert(pictures.Length > 0, "image discovery");
             using (var image = await imageProvider.GetImageResponse(pictures[0].Url, stop.Token)) Assert(image.ContentLength > 12, "image download");
-            File.WriteAllText("/config/fernsehserien-result.txt", "PASS: provider registration, identify, series/movie/season/episode metadata, image registration and download\n");
+            await MergeCheck(options);
+            File.WriteAllText("/config/fernsehserien-result.txt", "PASS: provider registration, identify, series/movie/season/episode metadata, image registration and download; locked-field refresh and existing image preservation\n");
         }
         catch (Exception e) { File.WriteAllText("/config/fernsehserien-result.txt", "FAIL: " + e + "\n"); }
     }
@@ -58,6 +71,27 @@ public sealed class RuntimeChecks : IServerEntryPoint
         var result = await provider.GetMetadata(info, stop.Token);
         Assert(result.HasMetadata && result.Item.GetProviderId("Fernsehserien") != null, "metadata " + typeof(T).Name);
         return result;
+    }
+    async Task MergeCheck(LibraryOptions options)
+    {
+        const string path = "/config/ci-library/Inception (2010)/Inception.mp4";
+        Directory.CreateDirectory(Path.GetDirectoryName(path));
+        File.WriteAllBytes(path, new byte[0]);
+        var imagePath = Path.Combine(Path.GetDirectoryName(path), "poster.png");
+        File.WriteAllBytes(imagePath, Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII="));
+        var root = library.RootFolder;
+        var movie = new Movie { Name = "Locked title", Overview = "Old description", Path = path, ParentId = root.InternalId,
+            Id = library.GetNewItemId(path, typeof(Movie)), LockedFields = new[] { MetadataFields.Name }, ProviderIds = Ids("filme/inception") };
+        movie.SetImage(new ItemImageInfo { Path = imagePath, Type = ImageType.Primary, Width = 1, Height = 1 }, 0);
+        var noRefresh = new MetadataRefreshOptions(files) { MetadataRefreshMode = MetadataRefreshMode.ValidationOnly, ImageRefreshMode = MetadataRefreshMode.ValidationOnly };
+        library.CreateItems(new List<BaseItem> { movie }, root, noRefresh, new BaseItem[] { root }, false, stop.Token);
+        options.TypeOptions = new[] { new TypeOptions { Type = "Movie", MetadataFetchers = new[] { "fernsehserien.de" }, ImageFetchers = new[] { "fernsehserien.de" } } };
+        var refresh = new MetadataRefreshOptions(files) { MetadataRefreshMode = MetadataRefreshMode.FullRefresh, ImageRefreshMode = MetadataRefreshMode.ValidationOnly,
+            ReplaceAllMetadata = true, ReplaceAllImages = false, EnableRemoteContentProbe = false, EnableSubtitleDownloading = false, EnableThumbnailImageExtraction = false };
+        await manager.RefreshSingleItem(movie, refresh, new BaseItem[] { root }, options, stop.Token);
+        Assert(movie.Name == "Locked title", "locked name preserved during refresh");
+        Assert(!string.IsNullOrWhiteSpace(movie.Overview) && movie.Overview != "Old description", "unlocked overview updated during refresh");
+        Assert(movie.ImageInfos.Any(i => i.Path == imagePath) && File.Exists(imagePath), "existing image preserved");
     }
     static ProviderIdDictionary Ids(string path) => new ProviderIdDictionary { { "Fernsehserien", path } };
     public void Dispose() { stop.Cancel(); }

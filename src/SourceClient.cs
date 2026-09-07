@@ -39,6 +39,7 @@ namespace Emby.Plugin.Fernsehserien
         public static string PathOf(string value, Uri relativeTo = null) => Validate(value, false, relativeTo).AbsolutePath.TrimEnd('/');
         public async Task<Page> Get(string value, bool search, CancellationToken ct)
         {
+            ct.ThrowIfCancellationRequested();
             var url = Validate(value); Task<Page> work;
             lock (sync)
             {
@@ -58,7 +59,7 @@ namespace Emby.Plugin.Fernsehserien
                     if (await Task.WhenAny(work, cancelled).ConfigureAwait(false) != work) ct.ThrowIfCancellationRequested();
                     return await work.ConfigureAwait(false);
                 }
-                finally { registrationCts.Cancel(); lock (sync) { if (work.IsCompleted) pending.Remove(url.AbsoluteUri); } }
+                finally { registrationCts.Cancel(); }
             }
         }
         private async Task<Page> FetchPage(Uri url, bool search)
@@ -87,7 +88,7 @@ namespace Emby.Plugin.Fernsehserien
                     foreach (var key in cache.Where(x => x.Value.Until <= DateTimeOffset.UtcNow).Select(x => x.Key).ToArray()) cache.Remove(key);
                     // Bounded page count; at most 4 MiB per page.
                     if (cache.Count >= 64) cache.Remove(cache.OrderBy(x => x.Value.Until).First().Key);
-                    cache[url.AbsoluteUri] = (DateTimeOffset.UtcNow.AddMinutes(page == null ? 5 : search ? 60 : 1440), page);
+                    cache[url.AbsoluteUri] = (DateTimeOffset.UtcNow.AddMinutes(page == null || search && Scraper.Search(page).Count == 0 ? 5 : search ? 60 : 1440), page);
                 }
                 return page;
             }
@@ -133,6 +134,7 @@ namespace Emby.Plugin.Fernsehserien
                 }
                 catch (HttpRequestException) when (attempt < 2) { response?.Dispose(); response = null; }
                 catch (OperationCanceledException) when (!ct.IsCancellationRequested && attempt < 2) { response?.Dispose(); response = null; }
+                catch (OperationCanceledException ex) when (!ct.IsCancellationRequested) { response?.Dispose(); throw new HttpRequestException("Source request timed out", ex); }
                 catch { response?.Dispose(); throw; }
                 finally { slots.Release(); }
                 if (response != null)
