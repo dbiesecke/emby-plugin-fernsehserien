@@ -20,7 +20,7 @@ Unnummerierte Specials werden nicht als S00E00 oder nach Listenposition einsorti
 
 Emby kann Poster (`Primary`), Hintergründe (`Backdrop`), Banner und eindeutig bezeichnete Logos abrufen. Episodenbilder sind `Primary`. Staffelposter werden nur aus der Staffel selbst übernommen; Episodenbilder und Serienbanner werden nicht zu Staffelpostern umgedeutet. Manche Titel haben ausschließlich ein Banner oder keinen passenden Bildtyp.
 
-Bildvarianten aus `srcset` werden nach angebotener Größe gewählt. URLs werden nicht durch erfundene Auflösungs-Suffixe verändert. Erlaubt sind ausschließlich HTTPS-Quellhosts und `bilder.fernsehserien.de`; beim Download werden Bildsignatur und Inhaltstyp geprüft. Bestehende Bilder ersetzt Emby nur gemäß dem ausgewählten Aktualisierungsmodus.
+Bildvarianten aus `srcset` werden nach angebotener Größe gewählt. Bei Quellbildern ohne HTML-Maße werden PNG-/JPEG-Abmessungen vor der Einordnung gelesen; ein `sendung`-Bild ist nicht automatisch ein Poster. URLs werden nicht durch erfundene Auflösungs-Suffixe verändert. Erlaubt sind ausschließlich HTTPS-Quellhosts und `bilder.fernsehserien.de`; beim Download werden Bildsignatur und Inhaltstyp geprüft. Bestehende Bilder ersetzt Emby nur gemäß dem ausgewählten Aktualisierungsmodus.
 
 ## Cache und Fehlerdiagnose
 

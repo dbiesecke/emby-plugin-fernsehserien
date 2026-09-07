@@ -180,6 +180,33 @@ namespace Emby.Plugin.Fernsehserien
                 return (data, type);
             }
         }
+        internal static (int Width, int Height) Dimensions(byte[] data)
+        {
+            int width = 0, height = 0;
+            if (data.Length >= 24 && data.Take(8).SequenceEqual(new byte[] { 137,80,78,71,13,10,26,10 }))
+            {
+                width = data[16] << 24 | data[17] << 16 | data[18] << 8 | data[19];
+                height = data[20] << 24 | data[21] << 16 | data[22] << 8 | data[23];
+            }
+            else if (data.Length >= 4 && data[0] == 255 && data[1] == 216)
+            {
+                for (int i = 2; i + 8 < data.Length;)
+                {
+                    if (data[i++] != 255) break;
+                    while (i < data.Length && data[i] == 255) i++;
+                    if (i + 2 >= data.Length) break;
+                    int marker = data[i++];
+                    if (marker == 0xd9 || marker == 0xda) break;
+                    if (marker == 1 || marker >= 0xd0 && marker <= 0xd7) continue;
+                    int length = data[i] << 8 | data[i + 1];
+                    if (length < 2 || i + length > data.Length) break;
+                    if (length >= 7 && (marker >= 0xc0 && marker <= 0xc3 || marker >= 0xc5 && marker <= 0xc7 || marker >= 0xc9 && marker <= 0xcb || marker >= 0xcd && marker <= 0xcf))
+                    { height = data[i + 3] << 8 | data[i + 4]; width = data[i + 5] << 8 | data[i + 6]; break; }
+                    i += length;
+                }
+            }
+            return width > 0 && height > 0 && width <= 32768 && height <= 32768 ? (width, height) : (0, 0);
+        }
         public void Dispose() { http.Dispose(); slots.Dispose(); }
     }
 }

@@ -145,7 +145,25 @@ namespace Emby.Plugin.Fernsehserien
             try
             {
                 var entry = await Catalog.Detail(id, item is Movie ? MediaKind.Movie : item is Season ? MediaKind.Season : item is Episode ? MediaKind.Episode : MediaKind.Series, ct).ConfigureAwait(false);
-                return entry?.Pictures.Select(p => new RemoteImageInfo { ProviderName = Name, Url = p.Url, Type = (ImageType)Enum.Parse(typeof(ImageType), p.Type), Width = p.Width, Height = p.Height }).ToArray() ?? Array.Empty<RemoteImageInfo>();
+                var result = new List<RemoteImageInfo>();
+                if (entry == null) return result;
+                foreach (var p in entry.Pictures)
+                {
+                    if (p.Type == "Detect")
+                    {
+                        try
+                        {
+                            var image = await SourceClient.Shared.Image(p.Url, ct).ConfigureAwait(false);
+                            var size = SourceClient.Dimensions(image.Data);
+                            if (size.Width == 0) continue;
+                            p.Width = size.Width; p.Height = size.Height;
+                            p.Type = size.Width < size.Height ? "Primary" : (double)size.Width / size.Height >= 3 ? "Banner" : "Backdrop";
+                        }
+                        catch (Exception ex) when (MetadataProvider<Movie, MovieInfo>.Expected(ex)) { continue; }
+                    }
+                    result.Add(new RemoteImageInfo { ProviderName = Name, Url = p.Url, Type = (ImageType)Enum.Parse(typeof(ImageType), p.Type), Width = p.Width, Height = p.Height });
+                }
+                return result;
             }
             catch (Exception ex) when (MetadataProvider<Movie, MovieInfo>.Expected(ex)) { logger.Warn("fernsehserien.de images failed: {0}", ex.GetType().Name); return Array.Empty<RemoteImageInfo>(); }
         }

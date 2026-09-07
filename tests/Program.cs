@@ -55,6 +55,8 @@ class Program
         Check(poster.Type == "Primary" && poster.Width == 800 && poster.Url.EndsWith("poster-800.jpg"), "largest poster and host filter");
         foreach (var bad in new[] { "http://www.fernsehserien.de/a", "https://fernsehserien.de.evil/a", "https://127.0.0.1/a", "https://user@www.fernsehserien.de/a", "https://www.fernsehserien.de:444/a" })
         { bool rejected = false; try { SourceClient.Validate(bad); } catch (ArgumentException) { rejected = true; } Check(rejected, "URL validation"); }
+        var png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=");
+        Check(SourceClient.Dimensions(png) == (1, 1) && SourceClient.Dimensions(new byte[24]) == (0, 0), "image geometry");
         var handler = new Handler(movie);
         using (var client = new SourceClient(handler))
         {

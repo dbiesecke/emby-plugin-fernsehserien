@@ -1,6 +1,6 @@
 # fernsehserien.de für Emby
 
-Eigenständiger Metadaten- und Bildprovider für **Serien, Filme, Staffeln und Episoden**. Deutsche Texte, Originaltitel, Produktionsdaten, Genres, Besetzung und verfügbare Bilder direkt von fernsehserien.de.
+Eigenständiger Metadaten- und Bildprovider für **Serien, Filme, Staffeln und Episoden**. Deutsche Texte, Originaltitel, Produktionsdaten, Genres, Besetzung und verfügbare Bilder direkt von fernsehserien.de. Bildtypen werden anhand von Kontext und Abmessungen getrennt.
 
 ## Installation
 

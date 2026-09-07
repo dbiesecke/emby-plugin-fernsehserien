@@ -178,7 +178,7 @@ namespace Emby.Plugin.Fernsehserien
                 var cls = n.GetAttributeValue("class", "");
                 string type = e.Kind == MediaKind.Episode ? "Primary" : cls.Contains("clearlogo") ? "Logo" :
                     width.HasValue && height > 0 ? (width < height ? "Primary" : (double)width.Value / height.Value >= 3 ? "Banner" : "Backdrop") :
-                    address.Contains("/sendung/") ? "Primary" : null;
+                    address.Contains("/sendung/") ? "Detect" : null;
                 if (type == null) continue;
                 if (best > 0 && width > 0 && height > 0) { height = (int)Math.Round(height.Value * best / width.Value); width = (int)best; }
                 if (!e.Pictures.Any(x => x.Url == address)) e.Pictures.Add(new Picture { Url = address, Width = width, Height = height, Type = type });

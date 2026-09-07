@@ -14,18 +14,23 @@ touch "$config/fernsehserien-ci"
 chmod -R a+rwX "$config"
 docker run -d --name "$name" --volume "$config:/config" "$image" >/dev/null
 for i in $(seq 1 120); do
-  if [ -f "$config/fernsehserien-result.txt" ]; then
-    cat "$config/fernsehserien-result.txt"
+  if docker exec "$name" test -f /config/fernsehserien-result.txt; then
     mkdir -p "$root/artifacts"
-    cp "$config/fernsehserien-result.txt" "$root/artifacts/runtime-result.txt"
-    grep -q '^PASS:' "$config/fernsehserien-result.txt"
+    docker exec "$name" cat /config/fernsehserien-result.txt > "$root/artifacts/runtime-result.txt"
+    cat "$root/artifacts/runtime-result.txt"
+    grep -q '^PASS:' "$root/artifacts/runtime-result.txt"
     exit $?
   fi
   if [ "$(docker inspect --format '{{.State.Running}}' "$name")" != "true" ]; then
     docker logs "$name" --tail 100
     exit 1
   fi
+  if [ "$i" = "24" ]; then
+    docker exec "$name" ls -ld /config /config/fernsehserien-ci
+    docker exec "$name" cat /config/fernsehserien-progress.txt || true
+  fi
   sleep 5
 done
 docker logs "$name" --tail 100
+docker exec "$name" ls -la /config
 exit 1
